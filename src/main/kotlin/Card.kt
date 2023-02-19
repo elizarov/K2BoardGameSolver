@@ -1,6 +1,8 @@
+import kotlin.math.max
 import kotlin.random.Random
 
 const val HAND_SIZE = 6
+const val USE_CARDS = 3
 
 val allCardsMap: Map<Card, Int> = mapOf(
     Card.Move(1) to 5,
@@ -31,6 +33,15 @@ val nCardTypes: Int = allCardsMap.size
 val allCardTypes: Array<Card> = allCardsMap.keys.toTypedArray()
 val allCardCounts: IntArray = allCardsMap.values.toIntArray()
 val allCards: PackedCards = allCardCounts.packCards()
+
+val maxDownMoveForUp = IntArray(9) { -1 }.also { a ->
+    chooseCards(USE_CARDS, allCards) { cards ->
+        forAllCardMoves(cards) { up, down, _ ->
+            a[up] = maxOf(a[up], down)
+        }
+    }
+}
+
 
 fun IntArray.packCards(): PackedCards {
     var res = 0L
@@ -93,6 +104,45 @@ fun chooseCards(k: Int, origin: PackedCards, action: (PackedCards) -> Unit) {
     rec(0, k, 0L)
 }
 
+fun forAllCardMoves(cards: PackedCards, action: (up: Int, down: Int, acc: Int) -> Unit) {
+    val c = arrayOfNulls<Card.Move>(USE_CARDS)
+    var n = 0
+    var acc = 0
+    for (i in 0 until nCardTypes) for (j in 0 until cards[i]) {
+        when (val type = allCardTypes[i]) {
+            is Card.Move -> c[n++] = type
+            is Card.Acc -> acc += type.value
+        }
+    }
+    val maxDown = IntArray(9) { -1 }
+    for (mask in 0 until (1 shl n)) {
+        var up = 0
+        var down = 0
+        for (i in 0 until n) {
+            if ((1 shl i) and mask != 0) {
+                up += c[i]!!.up
+            } else {
+                down += c[i]!!.down
+            }
+        }
+        maxDown[up] = maxOf(maxDown[up], down)
+    }
+    if (maxDown[0] == -1) {
+        // No move cards at all
+        action(0, 0, acc)
+        return
+    }
+    var up = 0
+    while (up < maxDown.size) {
+        var nextUp = up + 1
+        while (nextUp < maxDown.size && maxDown[nextUp] == -1) nextUp++
+        if (nextUp >= maxDown.size || maxDown[nextUp] != maxDown[up]) {
+            action(up, maxDown[up], acc)
+        }
+        up = nextUp
+    }
+}
+
 fun main() {
     println("Total of ${allCardCounts.sum()} cards")
     var count = 0
@@ -102,5 +152,9 @@ fun main() {
     println("Sampling card shuffles")
     repeat(10) {
         println(rnd.sampleCardsShuffle(6, allCards).packedCardsToString())
+    }
+    println("--- maxDownMoveForUp ---")
+    for (up in maxDownMoveForUp.indices) {
+        println("up=$up, down=${maxDownMoveForUp[up]}")
     }
 }

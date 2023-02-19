@@ -155,37 +155,38 @@ class Board(
         append("${spaces.sumOf { it.ent } * 100 / n / 100.0} avg ent")
     }
 
-    fun printState(state: State, cc1: PackedCards = 0, cc2: PackedCards = 0) {
-        val c1 = state.c1
-        val c2 = state.c2
-        println("Climber 1 $c1${if (cc1 == 0L) "" else "; used cards ${cc1.packedCardsToString()}"}")
-        println("Climber 2 $c2${if (cc2 == 0L) "" else "; used cards ${cc2.packedCardsToString()}"}")
+    fun printState(state: ClimbersState, vararg cards: PackedCards) {
+        val climbers = state.climbers
+        for (i in climbers.indices) {
+            val cc = cards.getOrElse(i) { 0 }
+            println("Climber ${i+1} ${climbers[i]}${if (cc == 0L) "" else "; used cards ${cc.packedCardsToString()}"}")
+        }
         if (state.hand != 0L) println("hand ${state.hand.packedCardsToString()}")
-        val ul = HashSet<Space>()
-        val ur = HashSet<Space>()
-        val lt = HashMap<Space, Char>()
-        val rt = HashMap<Space, Char>()
+        val lt = HashMap<Space, List<Char>>()
+        val rt = HashMap<Space, List<Char>>()
         val ch2str = mapOf(
             'A' to "❶",
-            'B' to "❷",
-            'C' to "➀",
+            'B' to "➀",
+            'C' to "❷",
             'D' to "➁",
         )
-        lt[c1.space] = 'A'
-        rt[c2.space] = 'B'
-        c1.tent?.let { lt[it] = 'C' }
-        c2.tent?.let { rt[it] = 'D' }
+        climbers.getOrNull(0)?.let { c1 ->
+            lt[c1.space] = (lt[c1.space] ?: emptyList()) + 'A'
+            c1.tent?.let { lt[it] = (lt[it] ?: emptyList()) + 'B' }
+        }
+        climbers.getOrNull(1)?.let { c2 ->
+            rt[c2.space] = (rt[c2.space] ?: emptyList()) + 'C'
+            c2.tent?.let { rt[it] = (rt[it] ?: emptyList()) + 'D' }
+        }
         for (row in spec.indices) {
             val s0 = (spec[row] + "  ").toCharArray()
-            for ((space, ch) in lt) if (space.row == row) {
-                var c = space.col1 - 1
-                if (!ul.add(space)) c--
-                s0[c] = ch
+            for ((space, chl) in lt) if (space.row == row) {
+                var c = space.col1
+                for (ch in chl) s0[--c] = ch
             }
-            for ((space, ch) in rt) if (space.row == row) {
-                var c = space.col2 + 1
-                if (!ur.add(space)) c++
-                s0[c] = ch
+            for ((space, chl) in rt) if (space.row == row) {
+                var c = space.col2
+                for (ch in chl) s0[++c] = ch
             }
             var s = s0.concatToString()
             for ((ch, str) in ch2str) s = s.replace(ch.toString(), str)
