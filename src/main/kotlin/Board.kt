@@ -155,7 +155,7 @@ class Board(
         append("${spaces.sumOf { it.ent } * 100 / n / 100.0} avg ent")
     }
 
-    fun printState(state: ClimbersState, vararg cards: PackedCards) {
+    fun printState(state: ClimbersState, vararg cards: PackedCards, vias: List<List<Space>> = emptyList()) {
         val climbers = state.climbers
         for (i in climbers.indices) {
             val cc = cards.getOrElse(i) { 0 }
@@ -164,33 +164,30 @@ class Board(
         if (state.hand != 0L) println("hand ${state.hand.packedCardsToString()}")
         val lt = HashMap<Space, List<Char>>()
         val rt = HashMap<Space, List<Char>>()
-        val ch2str = mapOf(
-            'A' to "❶",
-            'B' to "➀",
-            'C' to "❷",
-            'D' to "➁",
-        )
+        fun add(map: HashMap<Space, List<Char>>, space: Space, ch: Char) {
+            map[space] = (map[space] ?: emptyList()) + ch
+        }
         climbers.getOrNull(0)?.let { c1 ->
-            lt[c1.space] = (lt[c1.space] ?: emptyList()) + 'A'
-            c1.tent?.let { lt[it] = (lt[it] ?: emptyList()) + 'B' }
+            add(lt, c1.space, '❶')
+            vias.getOrNull(0)?.forEach { add(lt, it, '➀') }
+            c1.tent?.let { add(rt, it, '⑴') }
         }
         climbers.getOrNull(1)?.let { c2 ->
-            rt[c2.space] = (rt[c2.space] ?: emptyList()) + 'C'
-            c2.tent?.let { rt[it] = (rt[it] ?: emptyList()) + 'D' }
+            add(lt, c2.space, '❷')
+            vias.getOrNull(1)?.forEach { add(lt, it, '➁') }
+            c2.tent?.let { add(rt, it, '⑵') }
         }
         for (row in spec.indices) {
-            val s0 = (spec[row] + "  ").toCharArray()
+            val s = (spec[row] + "  ").toCharArray()
             for ((space, chl) in lt) if (space.row == row) {
                 var c = space.col1
-                for (ch in chl) s0[--c] = ch
+                for (ch in chl) s[--c] = ch
             }
             for ((space, chl) in rt) if (space.row == row) {
                 var c = space.col2
-                for (ch in chl) s0[++c] = ch
+                for (ch in chl) s[++c] = ch
             }
-            var s = s0.concatToString()
-            for ((ch, str) in ch2str) s = s.replace(ch.toString(), str)
-            println(s)
+            println(s.concatToString())
         }
     }
 }

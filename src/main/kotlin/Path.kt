@@ -2,9 +2,10 @@ import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
-data class PathCost(val score: Int, val up: Int = 0, val down: Int = 0) {
+data class PathCost(val score: Int, val up: Int = 0, val down: Int = 0, val via: List<Space> = emptyList()) {
     fun dominates(other: PathCost) = up <= other.up && down <= other.down && score >= other.score
-    operator fun plus(other: PathCost) = PathCost(maxOf(score, other.score), up + other.up, down + other.down)
+    operator fun plus(other: PathCost) =
+        PathCost(maxOf(score, other.score), up + other.up, down + other.down, via + other.via)
 }
 
 @OptIn(ExperimentalTime::class)
@@ -21,8 +22,8 @@ class BoardPaths(board: Board) {
         val time = measureTime {
             for (a in board.spaces) for (b in a.moves) {
                 val cost = when {
-                    b.row < a.row -> PathCost(b.score, up = b.ent)
-                    b.row > a.row -> PathCost(a.score, down = b.ent)
+                    b.row < a.row -> PathCost(b.score, up = b.ent, via = listOf(a))
+                    b.row > a.row -> PathCost(a.score, down = b.ent, via = listOf(a))
                     else -> error("Cannot have $a -> $b path on the same board row")
                 }
                 put(a, b, listOf(cost))

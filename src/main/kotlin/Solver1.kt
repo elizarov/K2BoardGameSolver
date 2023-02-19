@@ -1,4 +1,7 @@
 import kotlin.random.Random
+import kotlin.time.DurationUnit
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTimedValue
 
 data class State1(
     val c1: Climber,
@@ -15,12 +18,13 @@ data class State1(
 private const val DAYS = 7
 private const val SAMPLES = 3
 
-private val stateValues1 = Array(DAYS) { HashMap<State1, Int>() }
+private val stateValues1 = Array(DAYS + 1) { HashMap<State1, Int>() }
 
 data class MoveTrace1(
     val day: Int,
     val cc1: PackedCards,
-    val state: State1
+    val state: State1,
+    val via: List<Space>
 )
 
 fun solveStateValue1(day: Int, state: State1, trace: MutableList<MoveTrace1>?, paths: BoardPaths): Int {
@@ -56,19 +60,19 @@ fun solveStateValue1(day: Int, state: State1, trace: MutableList<MoveTrace1>?, p
     chooseCards(USE_CARDS, state.hand) loop1@{ useCards ->
         if (done) return@loop1
         val ms1 = findClimberMoves(state.c1, useCards, paths)
-        for ((s1, t1n, sc1, a1wt) in ms1) {
-            val t1 = state.c1.tent ?: t1n
-            var a1 = a1wt
-            if (s1 == t1) a1++
+        for (m1 in ms1) {
+            val t1 = state.c1.tent ?: m1.tent
+            var a1 = m1.accWithoutTent
+            if (m1.space == t1) a1++
             if (a1 >= 1) {
-                val c1 = Climber(s1, t1, maxOf(state.c1.score, sc1), a1.coerceAtMost(MAX_ACC))
+                val c1 = Climber(m1.space, t1, maxOf(state.c1.score, m1.score), a1.coerceAtMost(MAX_ACC))
                 val next = State1(c1, state.hand - useCards, state.deck)
                 val win = solveStateValue1(day + 1, next, null, paths)
                 if (trace == null) {
                     best = maxOf(best, win)
                 } else {
                     if (win == best) {
-                        trace.add(MoveTrace1(day, useCards, next))
+                        trace.add(MoveTrace1(day, useCards, next, m1.via))
                         solveStateValue1(day + 1, next, trace, paths)
                         done = true
                         return@loop1
@@ -81,6 +85,7 @@ fun solveStateValue1(day: Int, state: State1, trace: MutableList<MoveTrace1>?, p
     return best
 }
 
+@OptIn(ExperimentalTime::class)
 fun main() {
     val board = easyBoard
     val paths = BoardPaths(board)
@@ -89,13 +94,17 @@ fun main() {
     val s0 = State1(c0, 0L, 0L)
     board.printState(s0)
     println("Finding solution for game with $DAYS days, sampling $SAMPLES card shuffles...")
-    val score = solveStateValue1(0, s0, null, paths)
-    println("Found solution that gives worst-case score of $score")
+    val (score, time) = measureTimedValue {
+        solveStateValue1(0, s0, null, paths)
+    }
+    val totalStates = stateValues1.sumOf { it.size }
+    println("Found solution that gives worst-case score of $score in ${time.toString(DurationUnit.SECONDS, 3)} sec ($totalStates states)")
     println("Tracing a worst-case sample from the solution")
     val trace = ArrayList<MoveTrace1>()
     solveStateValue1(0, s0, trace, paths)
     for (t in trace) {
-        println("--- DAY ${t.day} ---")
-        board.printState(t.state, t.cc1)
+        val statesCnt = stateValues1[t.day + 1].size
+        println("--- DAY ${t.day + 1} ($statesCnt states)---")
+        board.printState(t.state, t.cc1, vias = listOf(t.via))
     }
 }
