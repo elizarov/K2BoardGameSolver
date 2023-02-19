@@ -15,6 +15,7 @@ data class Climber(
 
 interface ClimbersState {
     val hand: PackedCards
+    val deck: PackedCards
     val climbers: List<Climber>
 }
 

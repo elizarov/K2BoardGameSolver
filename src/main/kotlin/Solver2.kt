@@ -4,7 +4,7 @@ class State2(
     val c1: Climber,
     val c2: Climber,
     override val hand: PackedCards,
-    val deck: PackedCards
+    override val deck: PackedCards
 ) : ClimbersState {
     val compositeScore: Int
         get() = (c1.score + c2.score) * 100 + (c1.acc + c2.acc)

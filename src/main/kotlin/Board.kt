@@ -161,7 +161,9 @@ class Board(
             val cc = cards.getOrElse(i) { 0 }
             println("Climber ${i+1} ${climbers[i]}${if (cc == 0L) "" else "; used cards ${cc.packedCardsToString()}"}")
         }
-        if (state.hand != 0L) println("hand ${state.hand.packedCardsToString()}")
+        if (state.hand != 0L || state.deck != 0L) {
+            println("hand {${state.hand.packedCardsToString()}}; deck {${state.deck.packedCardsToString()}}")
+        }
         val lt = HashMap<Space, List<Char>>()
         val rt = HashMap<Space, List<Char>>()
         fun add(map: HashMap<Space, List<Char>>, space: Space, ch: Char) {

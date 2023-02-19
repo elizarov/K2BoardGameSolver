@@ -6,7 +6,7 @@ import kotlin.time.measureTimedValue
 data class State1(
     val c1: Climber,
     override val hand: PackedCards,
-    val deck: PackedCards
+    override val deck: PackedCards
 ) : ClimbersState {
     val compositeScore: Int
         get() = c1.score * 100 + c1.acc
