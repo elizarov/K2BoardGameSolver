@@ -1,4 +1,3 @@
-import kotlin.math.max
 import kotlin.random.Random
 
 const val HAND_SIZE = 6
@@ -83,25 +82,61 @@ fun Random.sampleCardsShuffle(k: Int, origin: PackedCards): PackedCards {
     return sel
 }
 
-fun chooseCards(k: Int, origin: PackedCards, action: (PackedCards) -> Unit) {
-    fun rec(i0: Int, k: Int, sel0: PackedCards) {
+inline fun chooseCards(k0: Int, origin: PackedCards, action: (PackedCards) -> Unit) {
+    val kSt = IntArray(nCardTypes + 1)
+    val iSt = IntArray(nCardTypes + 1)
+    val jSt = IntArray(nCardTypes + 1)
+    val selSt = LongArray(nCardTypes + 1)
+    var sp = 0
+    kSt[0] = k0
+    rec@while (sp >= 0) {
+        val k = kSt[sp]
         if (k == 0) {
-            action(sel0)
-            return
+            action(selSt[sp])
+            sp--
+            continue@rec
         }
-        var i = i0
+        var i = iSt[sp]
         while (origin[i] == 0) {
             i++
-            if (i >= nCardTypes) return
+            if (i >= nCardTypes) {
+                sp--
+                continue@rec
+            }
         }
+        iSt[sp] = i
         val m = origin[i]
-        var sel = sel0
-        for (j in 0..minOf(k, m)) {
-            rec(i + 1, k - j, sel)
-            sel += packedCard(i)
+        val sel = selSt[sp]
+        val j = jSt[sp]++
+        if (j <= minOf(k, m)) {
+            selSt[sp] = sel + packedCard(i)
+            sp++
+            kSt[sp] = k - j
+            iSt[sp] = i + 1
+            jSt[sp] = 0
+            selSt[sp] = sel
+        } else {
+            sp--
         }
     }
-    rec(0, k, 0L)
+//    fun rec(i0: Int, k: Int, sel0: PackedCards) {
+//        if (k == 0) {
+//            action(sel0)
+//            return
+//        }
+//        var i = i0
+//        while (origin[i] == 0) {
+//            i++
+//            if (i >= nCardTypes) return
+//        }
+//        val m = origin[i]
+//        var sel = sel0
+//        for (j in 0..minOf(k, m)) {
+//            rec(i + 1, k - j, sel)
+//            sel += packedCard(i)
+//        }
+//    }
+//    rec(0, k, 0L)
 }
 
 fun forAllCardMoves(cards: PackedCards, action: (up: Int, down: Int, acc: Int) -> Unit) {
